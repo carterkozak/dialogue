@@ -76,38 +76,42 @@ final class ConjureBodySerDe implements BodySerDe {
     }
 
     @Override
-    public RequestBody serialize(BinaryRequestBody value) {
-        Preconditions.checkNotNull(value, "A BinaryRequestBody value is required");
-        return new RequestBody() {
-            @Override
-            public Optional<Long> length() {
-                return Optional.empty();
-            }
+    public Serializer<BinaryRequestBody> outputStreamSerializer() {
+        return value -> {
+            Preconditions.checkNotNull(value, "A BinaryRequestBody value is required");
+            return new RequestBody() {
+                @Override
+                public Optional<Long> length() {
+                    return Optional.empty();
+                }
 
-            @Override
-            public InputStream content() {
-                throw new UnsupportedOperationException("TODO(rfink): implement this");
-            }
+                @Override
+                public InputStream content() {
+                    throw new UnsupportedOperationException("TODO(rfink): implement this");
+                }
 
-            @Override
-            public String contentType() {
-                return BINARY_CONTENT_TYPE;
-            }
+                @Override
+                public String contentType() {
+                    return BINARY_CONTENT_TYPE;
+                }
+            };
         };
     }
 
     @Override
-    public InputStream deserializeInputStream(Response exchange) {
-        Optional<String> contentType = exchange.contentType();
-        if (!contentType.isPresent()) {
-            throw new SafeIllegalArgumentException("Response is missing Content-Type header");
-        }
-        if (!contentType.get().startsWith(BINARY_CONTENT_TYPE)) {
-            throw new SafeIllegalArgumentException(
-                    "Unsupported Content-Type",
-                    SafeArg.of("Content-Type", contentType));
-        }
-        return exchange.body();
+    public Deserializer<InputStream> inputStreamDeserializer() {
+        return response -> {
+            Optional<String> contentType = response.contentType();
+            if (!contentType.isPresent()) {
+                throw new SafeIllegalArgumentException("Response is missing Content-Type header");
+            }
+            if (!contentType.get().startsWith(BINARY_CONTENT_TYPE)) {
+                throw new SafeIllegalArgumentException(
+                        "Unsupported Content-Type",
+                        SafeArg.of("Content-Type", contentType));
+            }
+            return response.body();
+        };
     }
 
     private static final class EncodingSerializerRegistry<T> implements Serializer<T> {
